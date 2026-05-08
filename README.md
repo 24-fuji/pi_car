@@ -14,6 +14,10 @@ sudo apt update
 sudo apt install python3-gpiozero
 sudo apt install python3-opencv
 sudo apt install i2c-tools
+sudo apt install -y python3-dbus
+```
+I2Cの配線が完了したかを調べられる
+```bash
 i2cdetect -y 1
 ```
 
@@ -26,3 +30,10 @@ I2Cを選択
 Would you like the ARM I2C interface to be enable?にYesを選択
 <Ok> -> <Finish>
 設定が反映されなければ再起動する
+
+# bluetoothの初期設定
+```bash
+sudo rfkill unblock bluetooth
+sudo bluetoothctl power on
+```
+2回目以降はファイルを起動し接続端末から接続するだけでよい
