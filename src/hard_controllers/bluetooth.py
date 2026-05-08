@@ -1,53 +1,49 @@
 import subprocess
 import time
-import os
 
 def run_bt(cmd):
-    """bluetoothctlコマンドを実行"""
-    subprocess.run(["bluetoothctl"] + cmd.split(), capture_output=True, text=True)
+    # -p プロンプトなしで実行
+    return subprocess.run(["bluetoothctl"] + cmd.split(), capture_output=True, text=True)
 
-def is_connected():
-    """デバイスが接続されているかチェック"""
-    res = subprocess.run(["bluetoothctl", "devices", "Paired"], capture_output=True, text=True)
-    # ペアリング済みデバイスの一覧を取得
-    paired_devices = res.stdout.strip().split('\n')
-    
-    for dev in paired_devices:
-        if not dev: continue
-        mac = dev.split()[1]
-        # そのデバイスの現在の情報を取得
-        info = subprocess.run(["bluetoothctl", "info", mac], capture_output=True, text=True).stdout
-        if "Connected: yes" in info:
-            return True, dev
-    return False, None
-
-def main():
-    print("=== Bluetooth 接続監視エンジン ===")
-    
-    # Bluetoothを「見つけられる状態」にする
+def setup_headless_bluetooth():
+    print("--- ヘッドレス・ペアリングモード起動 ---")
+    # 電源ONとロック解除
+    subprocess.run(["sudo", "rfkill", "unblock", "bluetooth"])
     run_bt("power on")
+    
+    # ここが重要：エージェントの設定
+    run_bt("agent NoInputNoOutput") # 確認画面を出さない設定
+    run_bt("default-agent")
     run_bt("discoverable on")
     run_bt("pairable on")
     
-    # 自分の名前を確認
-    name_res = subprocess.run(["hostname"], capture_output=True, text=True)
-    print(f"デバイス名: {name_res.stdout.strip()} (スマホ等でこの名前を探してください)")
-    print("ペアリング待機中...")
+    # 既存のペアリング要求を全て許可するバックグラウンド処理の代わり
+    # 実際には bluetoothctl のエージェントが自動で yes を返してくれるようになります。
+    print("準備完了。スマホから接続してください。ポップアップは出ないはずです。")
 
+def main():
+    setup_headless_bluetooth()
+    
     try:
         while True:
-            connected, dev_info = is_connected()
-            if connected:
-                print(f"\n[接続済み] {dev_info}")
-                # 接続されたら発見モードをオフにして負荷を減らす
-                run_bt("discoverable off")
-            else:
-                print(".", end="", flush=True)
+            # 接続済みデバイスがあるかチェック
+            res = run_bt("devices Paired")
+            if res.stdout:
+                # ペアリングされたデバイスを自動的に「信頼(trust)」状態にする
+                # これをしないと次回接続時にまた確認が出る場合があります
+                for line in res.stdout.strip().split('\n'):
+                    mac = line.split()[1]
+                    run_bt(f"trust {mac}")
+                
+                # 接続状態の確認
+                info = run_bt("info")
+                if "Connected: yes" in info.stdout:
+                    print("\r[接続中] 制御可能です      ", end="")
+                else:
+                    print("\r[待機中] ペアリング受付中...", end="")
             
-            time.sleep(3)
-            
+            time.sleep(2)
     except KeyboardInterrupt:
-        print("\n終了します")
         run_bt("discoverable off")
 
 if __name__ == "__main__":
