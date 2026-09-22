@@ -1,49 +1,51 @@
-from gpiozero import PWMOutputDevice
-from time import sleep
+# dc_motor_controller.py
+from gpiozero import OutputDevice, PWMOutputDevice
 
-# ピンの設定 (GPIO 12 と 13 を使用)
-# PWMOutputDeviceを使うことで、0.0 〜 1.0 の値で速度（デューティ比）を指定できます
-motor_in1 = PWMOutputDevice(12)
-motor_in2 = PWMOutputDevice(13)
+class DRV8835DualMotor:
+    def __init__(self, a_phase_pin=5, a_enbl_pin=12, b_phase_pin=6, b_enbl_pin=13):
+        # 左モーター (Motor A)
+        self.a_phase = OutputDevice(a_phase_pin)
+        self.a_enbl = PWMOutputDevice(a_enbl_pin, frequency=20000)
 
-def motor_forward(speed):
-    """正転: speedは 0.0 から 1.0"""
-    motor_in1.value = speed
-    motor_in2.value = 0
+        # 右モーター (Motor B)
+        self.b_phase = OutputDevice(b_phase_pin)
+        self.b_enbl = PWMOutputDevice(b_enbl_pin, frequency=20000)
 
-def motor_backward(speed):
-    """逆転: speedは 0.0 から 1.0"""
-    motor_in1.value = 0
-    motor_in2.value = speed
+        self.stop()
 
-def motor_stop():
-    """停止"""
-    motor_in1.value = 0
-    motor_in2.value = 0
+    def set_motor_left(self, command_val: float):
+        """左モーター制御 (command_val: -1.0 ～ 1.0)"""
+        val = max(-1.0, min(1.0, command_val))
+        if val > 0:
+            self.a_phase.off()       # 正転
+            self.a_enbl.value = val
+        elif val < 0:
+            self.a_phase.on()        # 逆転
+            self.a_enbl.value = abs(val)
+        else:
+            self.a_enbl.value = 0
 
-try:
-    print("モーター制御開始: 速度を徐々に上げます")
-    
-    # 1. 徐々に加速 (正転)
-    for s in [0.3, 0.5, 0.8, 1.0]:
-        print(f"正転 速度: {s*100}%")
-        motor_forward(s)
-        sleep(2)
+    def set_motor_right(self, command_val: float):
+        """右モーター制御 (command_val: -1.0 ～ 1.0)"""
+        val = max(-1.0, min(1.0, command_val))
+        if val > 0:
+            self.b_phase.off()       # 正転
+            self.b_enbl.value = val
+        elif val < 0:
+            self.b_phase.on()        # 逆転
+            self.b_enbl.value = abs(val)
+        else:
+            self.b_enbl.value = 0
 
-    # 2. 停止
-    print("停止")
-    motor_stop()
-    sleep(1)
+    def stop(self):
+        self.a_enbl.value = 0
+        self.b_enbl.value = 0
+        self.a_phase.off()
+        self.b_phase.off()
 
-    # 3. 逆転
-    print("逆転 速度: 50%")
-    motor_backward(0.5)
-    sleep(2)
-
-except KeyboardInterrupt:
-    # Ctrl+Cで安全に停止
-    print("\n中断されました")
-
-finally:
-    motor_stop()
-    print("終了")
+    def close(self):
+        self.stop()
+        self.a_enbl.close()
+        self.a_phase.close()
+        self.b_enbl.close()
+        self.b_phase.close()
