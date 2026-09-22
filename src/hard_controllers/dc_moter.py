@@ -5,11 +5,11 @@ class DRV8835DualMotor:
     def __init__(self, a_phase_pin=5, a_enbl_pin=12, b_phase_pin=6, b_enbl_pin=13):
         # 左モーター (Motor A)
         self.a_phase = OutputDevice(a_phase_pin)
-        self.a_enbl = PWMOutputDevice(a_enbl_pin, frequency=20000)
+        self.a_enbl = PWMOutputDevice(a_enbl_pin, frequency=1000)
 
         # 右モーター (Motor B)
         self.b_phase = OutputDevice(b_phase_pin)
-        self.b_enbl = PWMOutputDevice(b_enbl_pin, frequency=20000)
+        self.b_enbl = PWMOutputDevice(b_enbl_pin, frequency=1000)
 
         self.stop()
 
