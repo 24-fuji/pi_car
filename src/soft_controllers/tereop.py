@@ -1,4 +1,4 @@
-# teleop.py
+# tereop.py
 
 class DifferentialDriveTeleop:
     def __init__(self, max_speed_ratio=1.0):
@@ -9,9 +9,9 @@ class DifferentialDriveTeleop:
         linear (前後: -1.0 〜 1.0) と angular (旋回: -1.0 〜 1.0) 
         から左右モーターのデューティ比 (-1.0 〜 1.0) を算出する
         """
-        # 差動二輪の簡易運動学計算
-        left_speed = linear - angular
-        right_speed = linear + angular
+        # 旋回成分(angular)の符号を反転（右倒しで右旋回、左倒しで左旋回に変更）
+        left_speed = linear + angular
+        right_speed = linear - angular
 
         # 最大値が1.0を超えた場合に全体の比率を維持したまま正規化（スケーリング）
         max_mag = max(abs(left_speed), abs(right_speed))
