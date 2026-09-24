@@ -31,6 +31,7 @@ class MainController:
 
     def run(self):
         try:
+            current_dist = 0.0
             while True:
                 # IMU角度更新（常時）
                 current_yaw = self.imu.update()
@@ -38,9 +39,9 @@ class MainController:
                 # --- State 1: 正面監視（通常前進） ---
                 if self.state == "SCAN_FRONT":
                     self.servo.set_angle(90)
-                    dist = self.sensor.get_distance()
+                    current_dist = self.sensor.get_distance()
                     
-                    if dist < 25.0:
+                    if current_dist < 25.0:
                         self.motor.stop()
                         self.state = "SWEEP_SCAN"
                     else:
@@ -50,15 +51,19 @@ class MainController:
 
                 # --- State 2: 首振りスキャン ➔ 判定 ---
                 elif self.state == "SWEEP_SCAN":
+                    # スキャン開始時に改行を入れて表示を分ける
+                    print("\n[Sweep Scanning...]")
                     scan_data = []
                     for angle in [30, 60, 90, 120, 150]:
                         self.servo.set_angle(angle)
                         d = self.sensor.get_distance()
                         scan_data.append((angle, d))
+                        # スキャン中の状態もリアルタイム表示
+                        print(f"\r[SCAN] Servo: {angle:>3.0f}deg | Dist: {d:>5.1f}cm", end="", flush=True)
                     
                     self.servo.set_angle(90)
                     target_type = self.analyze_scan_data(scan_data)
-                    print(f"[Scan Result] Detected: {target_type}")
+                    print(f"\n[Scan Result] Detected: {target_type}")
 
                     self.planner.start_action()
                     if target_type == "WALL":
@@ -87,10 +92,20 @@ class MainController:
                     if self.planner.execute_turn_180():
                         self.state = "SCAN_FRONT"
 
+                # --- コマンドラインリアルタイム表示 (上書き更新) ---
+                servo_deg = getattr(self.servo, "current_angle", 90.0)
+                status_msg = (
+                    f"\rState: {self.state:<19} | "
+                    f"IMU Yaw: {current_yaw:>6.1f}deg | "
+                    f"Dist: {current_dist:>5.1f}cm | "
+                    f"Servo: {servo_deg:>5.1f}deg"
+                )
+                print(status_msg, end="", flush=True)
+
                 time.sleep(0.02)  # 50Hz周期
 
         except KeyboardInterrupt:
-            print("Stopping robot...")
+            print("\nStopping robot...")
         finally:
             self.motor.close()  # DRV8835DualMotor の終了処理
             self.servo.cleanup()
