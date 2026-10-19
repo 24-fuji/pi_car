@@ -1,5 +1,7 @@
 # pi_car
 
+password:fuji
+
 ## 試行時は以下のハードウェアを使用。OSは間違えてraspberry pi 4(64bit)を採用
 control cat using raspberry pi 3 model b+
 osはmodel 3B+であることを認識できているので問題ないと思われる。
