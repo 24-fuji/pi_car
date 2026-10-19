@@ -8,7 +8,7 @@ osはmodel 3B+であることを認識できているので問題ないと思わ
 
 ```bash
 cd <code_ws>/src
-git clone git clone git clone git@github.com:24-fuji/pi_car.git
+git clone git clone git@github.com:24-fuji/pi_car.git
 ```
 
 # ライブラリのインストール
